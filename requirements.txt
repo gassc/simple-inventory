@@ -1,0 +1,11 @@
+click==6.7
+Flask==0.12.2
+Flask-Admin==1.5.0
+Flask-SQLAlchemy==2.2
+itsdangerous==0.24
+Jinja2==2.9.6
+MarkupSafe==1.0
+petl==1.1.1
+SQLAlchemy==1.1.11
+Werkzeug==0.12.2
+WTForms==2.1

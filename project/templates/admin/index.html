@@ -1,0 +1,40 @@
+{% extends 'admin/master.html' %}
+{% block body %}
+{{ super() }}
+<div class="container-fluid">
+    <div class="jumbotron">
+        <h1>{{ config['ORG_NAME'] }}</h1>
+        <h1><small>{{ config['APP_TITLE'] }}</small></h1>
+        <hr>
+        <p>{{ config['APP_DESC'] }}</p>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <a class="btn btn-primary btn-lg btn-block" href="/admin/sale/new/?url=%2Fadmin%2Fsale%2F" role="button">
+                <h4><span class="glyphicon glyphicon-usd" aria-hidden="true"></span>&nbsp;&nbsp;Record a Sale</h4>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="btn btn-default btn-lg btn-block" href="/admin/supplier/" role="button">
+                <h4><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>&nbsp;&nbsp;Manage Suppliers</h4>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="btn btn-default btn-lg btn-block" href="/admin/product/" role="button">
+                <h4><span class="glyphicon glyphicon-th" aria-hidden="true"></span>&nbsp;&nbsp;Manage Products</h4>
+            </a>
+        </div>
+    </div>
+    <br>
+    <hr>
+    <div class="row">
+        <div class="col-sm-6 pull-left">
+            <p class="text-muted"><small>&copy; 2017 {{ config['ORG_NAME'] }}</small></p>
+        </div>
+        <div class="col-sm-6">
+            <div class="pull-right">
+                <p class="text-muted"><small>version 0.1.0-alpha</small></p>
+            </div>
+        </div>
+</div>
+{% endblock body %}
