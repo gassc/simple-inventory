@@ -1,3 +1,3 @@
 @ECHO OFF
 CALL ENV\Scripts\activate
-start python run.py && start /B /WAIT "" http://flynn-chiropractic:8700/admin
+START /B "" python run.py && START /WAIT "" http://localhost:8700/admin

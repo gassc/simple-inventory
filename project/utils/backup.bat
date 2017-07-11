@@ -1,3 +1,4 @@
 REM @ECHO OFF
 REM runs geostore_backup.py
-python backup.py path\to\db.sqlite path\to\backups
+CALL "C:\simple-inventory\ENV\Scripts\activate.bat"
+python backup.py "C:\simple-inventory\project\inventory_0.1.0.sqlite" "C:\simple-inventory\backup"
