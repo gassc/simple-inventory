@@ -27,8 +27,9 @@ app.config.from_pyfile('config.py')
 db = SQLAlchemy(app)
 
 # setup logging for SQLAlchemy
-logging.basicConfig()
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+if app.config['SQLALCHEMY_LOGGING']:
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 # ----------------------------------------------------------------------------
 # Helpers

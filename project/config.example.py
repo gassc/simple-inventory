@@ -7,10 +7,14 @@ APP_DESC = 'An extremely simple way to track the sales and inventory of things.'
 SECRET_KEY = '123456790'
 
 # Flask-Admin config
+DEBUG = False
+HOST = 'localhost'
+PORT = 5000
 FLASK_ADMIN_SWATCH = "readable"
 
-# Create in-memory database
-DATABASE_FILE = 'inventory.sqlite'
+# database
+DATABASE_FILE = 'inventory_0.1.0.sqlite'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_FILE
 SQLALCHEMY_ECHO = True
 SQLALCHEMY_TRACK_MODIFICATIONS = True
+SQLALCHEMY_LOGGING = False
