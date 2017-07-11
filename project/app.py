@@ -4,7 +4,7 @@
 # ----------------------------------------------------------------------------
 
 import os
-from flask import Flask
+from flask import Flask, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.schema import FetchedValue
 import logging
