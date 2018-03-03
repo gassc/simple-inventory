@@ -75,8 +75,8 @@ def calculate_profit(rec, assume_quantity=1):
         gross profit from the sale, as a float
     """
 
-    print(rec['id'], rec['quantity'], rec['special_price'],
-          rec['list_price'], rec['sold_price'])
+    # print(rec['id'], rec['quantity'], rec['special_price'],
+    #       rec['list_price'], rec['sold_price'])
 
     if not rec['quantity']:
         q = assume_quantity
@@ -136,6 +136,8 @@ def sales_summary(start_dt=None, end_dt=None):
     chart_count = etl.fold(
         sales_data, 'date', operator.add, 'quantity', presorted=True)
     chart_count = etl.rename(chart_count, {'key': 'x', 'value': 'y'})
+    chart_count, chart_count_missing_date = etl.biselect(
+        chart_count, lambda rec: rec.x is not None)
     # print(chart_count)
     # etl.lookall(chart_count)
 
@@ -144,6 +146,8 @@ def sales_summary(start_dt=None, end_dt=None):
     chart_gross = etl.rename(chart_gross, {
         'key': 'x', 'value': 'y'
     })
+    chart_gross, chart_gross_missing_date = etl.biselect(
+        chart_gross, lambda rec: rec.x is not None)
     # print(chart_gross)
     # etl.lookall(chart_gross)
 
@@ -160,7 +164,9 @@ def sales_summary(start_dt=None, end_dt=None):
     return {
         'gross_sales': gross_sales,
         'chart_gross': list(etl.dicts(chart_gross)),
-        'chart_count': list(etl.dicts(chart_count))
+        'chart_gross_missing_date': list(etl.dicts(chart_gross_missing_date)),
+        'chart_count': list(etl.dicts(chart_count)),
+        'chart_count_missing_date': list(etl.dicts(chart_count_missing_date))
     }
 
 
@@ -376,7 +382,13 @@ def index():
 @app.route('/reports')
 def reports():
     summary = sales_summary()
-    return render_template('pages/summary.html', summaryChartData=json.dumps(summary))
+    print(summary['chart_gross_missing_date'])
+    return render_template(
+        'pages/summary.html',
+        summaryChartData=json.dumps(summary),
+        chart_gross_missing_date=summary['chart_gross_missing_date'][0]['y'],
+        chart_count_missing_date=summary['chart_count_missing_date'][0]['y']
+    )
 
 
 # Create admin
