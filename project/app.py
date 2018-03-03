@@ -42,6 +42,7 @@ if app.config['SQLALCHEMY_LOGGING']:
 # Helpers
 # ----------------------------------------------------------------------------
 
+
 def format_currency(view, context, model, name):
     #print("{0} - {1}".format(name, model.__dict__[name]))
     v = model.__dict__[name]
@@ -51,19 +52,22 @@ def format_currency(view, context, model, name):
     else:
         return Markup("$---")
 
+
 def format_date(date_string, strf_string='%Y-%m-%d'):
     dt = parse(date_string)
     return dt.strftime(strf_string)
 
+
 def calculate_profit(rec):
     if rec['special_price']:
-        return round(((rec['special_price'] - rec['list_price']) * rec['quantity']),2)
+        return round(((rec['special_price'] - rec['list_price']) * rec['quantity']), 2)
     elif rec['sold_price']:
-        return round(((rec['sold_price'] - rec['list_price']) * rec['quantity']),2)
+        return round(((rec['sold_price'] - rec['list_price']) * rec['quantity']), 2)
     elif 'list_price' in rec:
-        return round((rec['list_price'] * rec['quantity']),2)
+        return round((rec['list_price'] * rec['quantity']), 2)
     else:
         return 0
+
 
 def sales_summary():
     """tally up gross (sale over list) and net (gross vs purchased) profits
@@ -72,20 +76,24 @@ def sales_summary():
     # sales = db.session.query(Sale).all()
 
     # process the existing tables
-    products_records = etl.fromdb(db.engine,'SELECT * FROM product')
-    sales_records = etl.fromdb(db.engine,'SELECT * FROM sale')
-    sales_data = etl.join(sales_records, products_records, lkey='product_id', rkey='id')
+    products_records = etl.fromdb(db.engine, 'SELECT * FROM product')
+    sales_records = etl.fromdb(db.engine, 'SELECT * FROM sale')
+    sales_data = etl.join(sales_records, products_records,
+                          lkey='product_id', rkey='id')
     sales_data = etl.convert(sales_data, 'date', lambda dt: format_date(dt))
-    sales_data = etl.addfield(sales_data, 'gross_profit', lambda rec: calculate_profit(rec))
+    sales_data = etl.addfield(
+        sales_data, 'gross_profit', lambda rec: calculate_profit(rec))
     sales_data = etl.sort(sales_data, 'date')
 
     # summarize data
-    chart_count = etl.fold(sales_data, 'date', operator.add, 'quantity', presorted=True)
+    chart_count = etl.fold(
+        sales_data, 'date', operator.add, 'quantity', presorted=True)
     chart_count = etl.rename(chart_count, {
         'key': 'x', 'value': 'y'
     })
     # print(chart_count)
-    chart_gross = etl.fold(sales_data, 'date', operator.add, 'gross_profit', presorted=True)
+    chart_gross = etl.fold(sales_data, 'date', operator.add,
+                           'gross_profit', presorted=True)
     chart_gross = etl.rename(chart_gross, {
         'key': 'x', 'value': 'y'
     })
@@ -101,10 +109,10 @@ def sales_summary():
         #     gross_sales += (sale['sold_price'] - sale['list_price']) * sale['quantity']
         # else:
         #     gross_sales += sale['list_price'] * sale['quantity']
-    
+
     return {
-        'gross_sales': gross_sales, 
-        'chart_gross': list(etl.dicts(chart_gross)), 
+        'gross_sales': gross_sales,
+        'chart_gross': list(etl.dicts(chart_gross)),
         'chart_count': list(etl.dicts(chart_count))
     }
 
@@ -124,11 +132,14 @@ class Supplier(db.Model):
     def __str__(self):
         return self.name
 
+
 class SupplierView(ModelView):
     column_searchable_list = ('name', 'contact', 'email', 'phone', 'notes')
     action_disallowed_list = ['delete']
     column_exclude_list = ['notes']
     form_excluded_columns = ['suppliers']
+    can_export = True
+
 
 # Create M2M table
 product_tags_table = db.Table(
@@ -139,9 +150,11 @@ product_tags_table = db.Table(
 )
 
 # Create models
+
+
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    
+
     # descriptive fields
     code = db.Column(db.String(255), unique=True)
     name = db.Column(db.String(255), unique=True)
@@ -149,6 +162,7 @@ class Product(db.Model):
     list_price = db.Column(db.Float)
     selling_price = db.Column(db.Float)
     description = db.Column(db.Text)
+    discontinued = db.Column(db.Boolean())
 
     # REF: Supplier (brand) table
     supplier_id = db.Column(db.Integer(), db.ForeignKey(Supplier.id))
@@ -160,60 +174,76 @@ class Product(db.Model):
         server_default=FetchedValue(),
         server_onupdate=FetchedValue()
     )
-    
-    # VOLUME ------------------------------------------------------------
-    
+
     # intial amount; managed in a separate form
+    initial_volume = db.Column(db.Integer)
+
+    # REF: tags table
+    tags = db.relationship('Tag', secondary=product_tags_table)
+
+    def __str__(self):
+        return self.fullname
+
+
+class ProductView(ModelView):
+    column_formatters = {
+        'list_price': format_currency,
+        'selling_price': format_currency
+    }
+    column_searchable_list = ('name', Supplier.name, 'tags.name', 'fullname')
+    column_exclude_list = ['description', 'initial_volume', 'fullname']
+    column_editable_list = ['tags']
+    action_disallowed_list = ['delete']
+    page_size = 25
+    form_excluded_columns = ['products', 'fullname']
+    can_export = True
+
+
+'''
+class Inventory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer(), db.ForeignKey(Product.id))
+    product = db.relationship(Product, backref='products_2_inventory')
+    initial_volume = db.Column(db.Integer)
+    volume_sold = db.Column(db.Integer)
+    volume_replaced = db.Column(db.Integer)
+    in_stock = db.Column(db.Integer)
+    notes = db.Column(db.Text)
+
     initial_volume = db.Column(
         db.Integer,
         default=0,
         server_default=FetchedValue(),
         server_onupdate=FetchedValue()
     )
-    
-    # total replaced = *incremented* from a separate form
-    volume_replaced = db.Column(
-        db.Integer,
-        default=0,
-        server_default=FetchedValue(),
-        server_onupdate=FetchedValue()
-    )                                
-    
-    # auto-completed via triggers in the SALES table
-    ## total sold = tally of sales from sales table
-    volume_sold = db.Column(
-        db.Integer,
-        default=0,
-        server_default=FetchedValue(),
-        server_onupdate=FetchedValue()
-    )
-    # in stock = initial volume - volume sold + volume replaced
-    in_stock = db.Column(
-        db.Integer,
-        default=0,
-        server_default=FetchedValue(),
-        server_onupdate=FetchedValue()
-    )
-    
-    # REF: tags table
-    tags = db.relationship('Tag', secondary=product_tags_table)
-    
-    discontinued = db.Column(db.Boolean())
 
+    # total replaced = *incremented* from a separate form
+    # volume_replaced = db.Column(
+    #     db.Integer,
+    #     default=0,
+    #     server_default=FetchedValue(),
+    #     server_onupdate=FetchedValue()
+    # )
+
+    # auto-completed via triggers in the SALES table
+    # total sold = tally of sales from sales table
+    # volume_sold = db.Column(
+    #     db.Integer,
+    #     default=0,
+    #     server_default=FetchedValue(),
+    #     server_onupdate=FetchedValue()
+    # )
+    # in stock = initial volume - volume sold + volume replaced
+    # in_stock = db.Column(
+    #     db.Integer,
+    #     default=0,
+    #     server_default=FetchedValue(),
+    #     server_onupdate=FetchedValue()
+    # )    
     def __str__(self):
-        return self.fullname
-    
-class ProductView(ModelView):
-    column_formatters = {
-        'list_price': format_currency,
-        'selling_price': format_currency
-    }
-    column_searchable_list = ('name', Supplier.name, 'tags.name', 'fullname','code')
-    column_exclude_list = ['description','initial_volume', 'volume_replaced', 'fullname']
-    column_editable_list = ['tags']
-    action_disallowed_list = ['delete']
-    page_size = 25
-    form_excluded_columns = ['products', 'fullname','volume_replaced','volume_sold', 'in_stock']
+        return self.in_stock
+'''
+
 
 class InventoryView(BaseView):
     @expose('/')
@@ -227,8 +257,10 @@ class InventoryView(BaseView):
     can_create = False
     can_edit = False
     can_delete = False
+    can_export = True
     '''
-    
+
+
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Unicode(64))
@@ -236,17 +268,21 @@ class Tag(db.Model):
     def __str__(self):
         return self.name
 
+
 class Staff(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text)
+
     def __str__(self):
         return self.name
+
 
 '''
 class StaffView(ModelView):
     column_searchable_list = ('name')
     action_disallowed_list = ['delete']
 '''
+
 
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -259,46 +295,39 @@ class Sale(db.Model):
     staff_id = db.Column(db.Integer(), db.ForeignKey(Staff.id))
     staff = db.relationship(Staff, backref='staff')
     sold_price = db.Column(db.Float)
-    
+
     def __str__(self):
         return self.product
-    
+
+
 class SaleView(ModelView):
     column_formatters = {
         'special_price': format_currency,
         'sold_price': format_currency
     }
     column_searchable_list = (Product.fullname, Product.code, 'date')
-    column_exclude_list = ['notes','special_price', 'fullname']
+    column_exclude_list = ['notes', 'special_price', 'fullname']
     form_excluded_columns = ['sold_price']
+    can_export = True
 
-'''
-class Inventory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer(), db.ForeignKey(Product.id))
-    product = db.relationship(Product, backref='products_2_inventory')
-    initial_volume = db.Column(db.Integer)
-    volume_sold = db.Column(db.Integer)
-    volume_replaced = db.Column(db.Integer)
-    in_stock = db.Column(db.Integer)
-    notes = db.Column(db.Text)
-    def __str__(self):
-        return self.in_stock
-'''
 
 # ----------------------------------------------------------------------------
 # Flask Views
 # ----------------------------------------------------------------------------
 
 # root route
+
+
 @app.route('/')
 def index():
     return redirect("/admin/", code=302)
+
 
 @app.route('/reports')
 def reports():
     summary = sales_summary()
     return render_template('pages/summary.html', summaryChartData=json.dumps(summary))
+
 
 # Create admin
 admin = admin.Admin(
