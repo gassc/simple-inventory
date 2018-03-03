@@ -7,9 +7,11 @@ import os
 from flask import Flask, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.schema import FetchedValue
+import sqlite3
 import logging
 from jinja2 import Markup
 from wtforms import validators
+import petl as etl
 
 import flask_admin as admin
 from flask_admin.contrib import sqla
@@ -38,6 +40,29 @@ if app.config['SQLALCHEMY_LOGGING']:
 def format_currency(view, context, model, name):
     #print("{0} - {1}".format(name, model.__dict__[name]))
     return Markup("${:,.2f}".format(model.__dict__[name]))
+
+def profits_from_sales():
+    """tally up gross (sale over list) and net (gross vs purchased) profits
+    """
+    # products = db.session.query(Product).all()
+    # sales = db.session.query(Sale).all()
+
+    products_records = etl.fromdb(db.engine,'SELECT * FROM product')
+    sales_records = etl.fromdb(db.engine,'SELECT * FROM sale')
+    sales_data = etl.join(sales_records, products_records, lkey='product_id', rkey='id').dicts()
+
+    total = 0
+    
+    for sale in sales_data:
+        # if special price
+        if sale['special_price']:
+            total += (sale['special_price'] - sale['list_price']) * sale['quantity']
+        elif sale['sold_price']:
+            total += (sale['sold_price'] - sale['list_price']) * sale['quantity']
+        else:
+            total += sale['list_price'] * sale['quantity']
+    
+    return total, sales_data.len()
 
 
 # ----------------------------------------------------------------------------
@@ -153,6 +178,10 @@ class SaleView(ModelView):
 @app.route('/')
 def index():
     return redirect("/admin/", code=302)
+
+@app.route('/reports')
+def reports():
+    return None
 
 # Create admin
 admin = admin.Admin(
