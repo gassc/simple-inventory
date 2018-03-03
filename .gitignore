@@ -19,3 +19,4 @@ project/test.db
 # komodo project stuff
 .komodotools
 *.komodoproject
+.vscode/settings.json
