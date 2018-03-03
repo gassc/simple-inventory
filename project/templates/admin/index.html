@@ -1,6 +1,4 @@
-{% extends 'admin/master.html' %}
-{% block body %}
-{{ super() }}
+{% extends 'admin/master.html' %} {% block body %} {{ super() }}
 <div class="container-fluid">
     <div class="jumbotron">
         <h1>{{ config['ORG_NAME'] }}</h1>
@@ -36,5 +34,5 @@
                 <p class="text-muted"><small>version 0.1.0-alpha</small></p>
             </div>
         </div>
-</div>
-{% endblock body %}
+    </div>
+    {% endblock body %}

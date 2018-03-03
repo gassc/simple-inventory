@@ -4,14 +4,18 @@
 # ----------------------------------------------------------------------------
 
 import os
-from flask import Flask, redirect
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.schema import FetchedValue
+import time
 import sqlite3
 import logging
+import operator
+import json
+from flask import Flask, redirect, render_template
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.schema import FetchedValue
 from jinja2 import Markup
 from wtforms import validators
 import petl as etl
+from dateutil.parser import parse
 
 import flask_admin as admin
 from flask_admin.contrib import sqla
@@ -41,28 +45,62 @@ def format_currency(view, context, model, name):
     #print("{0} - {1}".format(name, model.__dict__[name]))
     return Markup("${:,.2f}".format(model.__dict__[name]))
 
-def profits_from_sales():
+def format_date(date_string, strf_string='%Y-%m-%d'):
+    dt = parse(date_string)
+    return dt.strftime(strf_string)
+
+def calculate_profit(rec):
+    if rec['special_price']:
+        return round(((rec['special_price'] - rec['list_price']) * rec['quantity']),2)
+    elif rec['sold_price']:
+        return round(((rec['sold_price'] - rec['list_price']) * rec['quantity']),2)
+    elif 'list_price' in rec:
+        return round((rec['list_price'] * rec['quantity']),2)
+    else:
+        return 0
+
+def sales_summary():
     """tally up gross (sale over list) and net (gross vs purchased) profits
     """
     # products = db.session.query(Product).all()
     # sales = db.session.query(Sale).all()
 
+    # process the existing tables
     products_records = etl.fromdb(db.engine,'SELECT * FROM product')
     sales_records = etl.fromdb(db.engine,'SELECT * FROM sale')
-    sales_data = etl.join(sales_records, products_records, lkey='product_id', rkey='id').dicts()
+    sales_data = etl.join(sales_records, products_records, lkey='product_id', rkey='id')
+    sales_data = etl.convert(sales_data, 'date', lambda dt: format_date(dt))
+    sales_data = etl.addfield(sales_data, 'gross_profit', lambda rec: calculate_profit(rec))
+    sales_data = etl.sort(sales_data, 'date')
 
-    total = 0
-    
-    for sale in sales_data:
+    # summarize data
+    chart_count = etl.fold(sales_data, 'date', operator.add, 'quantity', presorted=True)
+    chart_count = etl.rename(chart_count, {
+        'key': 'x', 'value': 'y'
+    })
+    # print(chart_count)
+    chart_gross = etl.fold(sales_data, 'date', operator.add, 'gross_profit', presorted=True)
+    chart_gross = etl.rename(chart_gross, {
+        'key': 'x', 'value': 'y'
+    })
+    # print(chart_gross)
+
+    gross_sales = 0
+    for sale in etl.dicts(sales_data):
+        gross_sales += calculate_profit(sale)
         # if special price
-        if sale['special_price']:
-            total += (sale['special_price'] - sale['list_price']) * sale['quantity']
-        elif sale['sold_price']:
-            total += (sale['sold_price'] - sale['list_price']) * sale['quantity']
-        else:
-            total += sale['list_price'] * sale['quantity']
+        # if sale['special_price']:
+        #     gross_sales += (sale['special_price'] - sale['list_price']) * sale['quantity']
+        # elif sale['sold_price']:
+        #     gross_sales += (sale['sold_price'] - sale['list_price']) * sale['quantity']
+        # else:
+        #     gross_sales += sale['list_price'] * sale['quantity']
     
-    return total, sales_data.len()
+    return {
+        'gross_sales': gross_sales, 
+        'chart_gross': list(etl.dicts(chart_gross)), 
+        'chart_count': list(etl.dicts(chart_count))
+    }
 
 
 # ----------------------------------------------------------------------------
@@ -181,7 +219,8 @@ def index():
 
 @app.route('/reports')
 def reports():
-    return None
+    summary = sales_summary()
+    return render_template('pages/summary.html', summaryChartData=json.dumps(summary))
 
 # Create admin
 admin = admin.Admin(
