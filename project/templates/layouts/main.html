@@ -1,0 +1,49 @@
+<!doctype html>
+
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}{% endblock %}</title>
+
+    <!-- meta -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!-- /meta -->
+
+    {% include 'layouts/core.head.html' %}
+
+</head>
+
+<body>
+
+    <!-- Wrap all page content here -->
+    <div id="wrap">
+
+        <!-- Fixed navbar -->
+
+
+        <!-- Begin page content -->
+        <main id="content" role="main" class="container">
+
+            <div class="row">
+                <div class="col-md-12">
+                    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} fade in">
+                        {{ message }}
+                        <a class="close" data-dismiss="alert">&times;</a>
+                    </div>
+                    {% endfor %} {% endif %} {% endwith %}
+                </div>
+            </div>
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+    </div>
+
+    {% include 'layouts/footer.html' %} {% include 'layouts/core.tail.html' %} {% include 'layouts/analytics.html' %}
+
+</body>
+
+</html>

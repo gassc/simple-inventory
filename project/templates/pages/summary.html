@@ -1,11 +1,29 @@
-<h1>Sales Summary</h1>
-<h2>Transactions Per Day</h2>
-<canvas id="summaryCountChart" width="300" height="100"></canvas>
-<h2>Gross Sales per Day</h2>
-<canvas id="summarySalesChart" width="300" height="100"></canvas>
+{% extends 'layouts/main.html' %} {% block title %}Sales Summary{% endblock %}
+<!-- block -->
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Sales Summary</h1>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2>Transactions Per Day</h2>
+        <canvas id="summaryCountChart" width="300" height="100"></canvas>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>Gross Sales per Day</h2>
+        <canvas id="summarySalesChart" width="300" height="100"></canvas>
+    </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
 <script>
     var summaryChartData = JSON.parse('{{ summaryChartData|safe }}');
     console.log(summaryChartData)
 </script>
 <script src="{{ url_for('static', filename='js/summaryChart.js')}}" defer></script>
+{% endblock %}

@@ -44,71 +44,118 @@ if app.config['SQLALCHEMY_LOGGING']:
 
 
 def format_currency(view, context, model, name):
-    #print("{0} - {1}".format(name, model.__dict__[name]))
+    # print("{0} - {1}".format(name, model.__dict__[name]))
     v = model.__dict__[name]
-    print(v)
+    # print(v)
     if v is not None:
         return Markup("${:,.2f}".format(v))
     else:
         return Markup("$---")
 
 
-def format_date(date_string, strf_string='%Y-%m-%d'):
+def format_date(date_string, strf_string='%Y-%m-%d', replace_nonetype_with="00-00-0000"):
+    # if date_string is None:
+    #     print(date_string, type(date_string))
+    #     return replace_nonetype_with
+    # else:
     dt = parse(date_string)
     return dt.strftime(strf_string)
 
 
-def calculate_profit(rec):
+def calculate_profit(rec, assume_quantity=1):
+    """give a record created from a join of Sales and Product data, return gross profit.
+    If no price information is available, returns zero. If no quantity information is available,
+    uses the assume_quantity parameter (default = 1)
+
+    Arguments:
+        rec {dict} -- a record created from a join of Sales and Product data
+        assume_quantity {int} -- number to use if quantity (from sale) is empty. defaults to 1
+
+    Returns:
+        gross profit from the sale, as a float
+    """
+
+    print(rec['id'], rec['quantity'], rec['special_price'],
+          rec['list_price'], rec['sold_price'])
+
+    if not rec['quantity']:
+        q = assume_quantity
+    else:
+        q = rec['quantity']
     if rec['special_price']:
-        return round(((rec['special_price'] - rec['list_price']) * rec['quantity']), 2)
+        return round(((rec['special_price'] - rec['list_price']) * q), 2)
     elif rec['sold_price']:
-        return round(((rec['sold_price'] - rec['list_price']) * rec['quantity']), 2)
+        return round(((rec['sold_price'] - rec['list_price']) * q), 2)
     elif 'list_price' in rec:
-        return round((rec['list_price'] * rec['quantity']), 2)
+        return round((rec['list_price'] * q), 2)
     else:
         return 0
 
 
-def sales_summary():
-    """tally up gross (sale over list) and net (gross vs purchased) profits
+def handle_none(v, replace_with=1):
+    if v is None:
+        return replace_with
+    else:
+        return v
+
+
+def sales_summary(start_dt=None, end_dt=None):
+    """tally up gross (sale over list) profits
+    TODO: tally up net profites (gross profit vs inventory purchase total)
+
+    TODO: Keyword Arguments:
+        start_dt {[type]} -- datetime for start of query (default: {None})
+        end_dt {[type]} -- datetime for start of query [description] (default: {None})
+
+    Returns:
+        [dict] -- various types of sales information, stored in a dictionary.
     """
+
     # products = db.session.query(Product).all()
     # sales = db.session.query(Sale).all()
 
-    # process the existing tables
+    # retrieve existing tables
     products_records = etl.fromdb(db.engine, 'SELECT * FROM product')
     sales_records = etl.fromdb(db.engine, 'SELECT * FROM sale')
+
+    # join product info to sales data
     sales_data = etl.join(sales_records, products_records,
                           lkey='product_id', rkey='id')
+
+    # prep joined sales data for tabulation
     sales_data = etl.convert(sales_data, 'date', lambda dt: format_date(dt))
     sales_data = etl.addfield(
-        sales_data, 'gross_profit', lambda rec: calculate_profit(rec))
+        sales_data, 'gross_profit', lambda rec: calculate_profit(rec)
+    )
     sales_data = etl.sort(sales_data, 'date')
+    sales_data = etl.convert(
+        sales_data, 'quantity', lambda q: handle_none(q, replace_with=1)
+    )
 
-    # summarize data
+    # summarize data into charting-friendly data structures
     chart_count = etl.fold(
         sales_data, 'date', operator.add, 'quantity', presorted=True)
-    chart_count = etl.rename(chart_count, {
-        'key': 'x', 'value': 'y'
-    })
+    chart_count = etl.rename(chart_count, {'key': 'x', 'value': 'y'})
     # print(chart_count)
+    # etl.lookall(chart_count)
+
     chart_gross = etl.fold(sales_data, 'date', operator.add,
                            'gross_profit', presorted=True)
     chart_gross = etl.rename(chart_gross, {
         'key': 'x', 'value': 'y'
     })
     # print(chart_gross)
+    # etl.lookall(chart_gross)
 
+    # tabulate some figures
     gross_sales = 0
     for sale in etl.dicts(sales_data):
         gross_sales += calculate_profit(sale)
-        # if special price
-        # if sale['special_price']:
-        #     gross_sales += (sale['special_price'] - sale['list_price']) * sale['quantity']
-        # elif sale['sold_price']:
-        #     gross_sales += (sale['sold_price'] - sale['list_price']) * sale['quantity']
-        # else:
-        #     gross_sales += sale['list_price'] * sale['quantity']
+
+    # for i in etl.dicts(chart_count):
+    #     print(i)
+    # for i in etl.dicts(chart_gross):
+    #     print(i)
 
     return {
         'gross_sales': gross_sales,
@@ -147,6 +194,8 @@ product_tags_table = db.Table(
     db.Model.metadata,
     db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
     db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
+
+
 )
 
 # Create models
@@ -239,7 +288,7 @@ class Inventory(db.Model):
     #     default=0,
     #     server_default=FetchedValue(),
     #     server_onupdate=FetchedValue()
-    # )    
+    # )
     def __str__(self):
         return self.in_stock
 '''
@@ -251,7 +300,8 @@ class InventoryView(BaseView):
         return self.render('custom/inventory_view.html')
     '''
     column_searchable_list = ('name', Supplier.name, 'fullname','code')
-    column_include_list = [Supplier.name, 'code', 'name', 'initial_volume', 'volume_replaced', 'volume_sold', 'in_stock']
+    column_include_list = [Supplier.name, 'code', 'name',
+        'initial_volume', 'volume_replaced', 'volume_sold', 'in_stock']
     action_disallowed_list = ['delete','create','update']
     page_size = 25
     can_create = False
@@ -340,6 +390,6 @@ admin = admin.Admin(
 admin.add_view(SaleView(Sale, db.session))
 admin.add_view(SupplierView(Supplier, db.session))
 admin.add_view(ProductView(Product, db.session))
-#admin.add_view(InventoryView(name='Inventory', endpoint='inventory'))
+# admin.add_view(InventoryView(name='Inventory', endpoint='inventory'))
 admin.add_view(ModelView(Tag, db.session))
 admin.add_view(ModelView(Staff, db.session))
