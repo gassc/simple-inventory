@@ -1,9 +1,12 @@
-{% extends 'layouts/main.html' %} {% block title %}Sales Summary{% endblock %}
+{% extends 'admin/master.html' %}
+<!-- Title -->
+{% block title %}Sales Summary{% endblock %}
 <!-- block -->
-{% block content %}
+{% block body %}
 <div class="row">
     <div class="col-md-12">
-        <h1>Sales Summary</h1>
+        <h1>Sales</h1>
+        <h2>{{gross_sales}} gross sales</h2>
     </div>
 </div>
 <div class="row">

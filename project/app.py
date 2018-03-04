@@ -193,6 +193,7 @@ class SupplierView(ModelView):
     column_exclude_list = ['notes']
     form_excluded_columns = ['suppliers']
     can_export = True
+    can_delete = False
 
 
 # Create M2M table
@@ -244,13 +245,15 @@ class ProductView(ModelView):
         'list_price': format_currency,
         'selling_price': format_currency
     }
-    column_searchable_list = ('name', Supplier.name, 'tags.name', 'fullname')
+    column_searchable_list = ('name', Supplier.name,
+                              'tags.name', 'fullname', 'code')
     column_exclude_list = ['description', 'initial_volume', 'fullname']
     column_editable_list = ['tags']
     action_disallowed_list = ['delete']
     page_size = 100
     form_excluded_columns = ['products', 'fullname']
     can_export = True
+    can_delete = False
 
 
 '''
@@ -345,6 +348,7 @@ class Sale(db.Model):
     # date = db.Column(db.DateTime, server_default=func.now())
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     special_price = db.Column(db.Float)
+    use_list_price = db.Column(db.Boolean(), default=False)
     notes = db.Column(db.Text)
     product_id = db.Column(db.Integer(), db.ForeignKey(Product.id))
     product = db.relationship(Product, backref='products')
@@ -362,10 +366,24 @@ class SaleView(ModelView):
         'sold_price': format_currency
     }
     column_searchable_list = (Product.fullname, Product.code, 'date')
-    column_exclude_list = ['notes', 'special_price', 'fullname']
+    column_exclude_list = ['notes', 'special_price',
+                           'fullname', 'use_list_price']
     form_excluded_columns = ['sold_price']
     can_export = True
 
+
+class AnalyticsView(BaseView):
+    @expose('/')
+    def index(self):
+        summary = sales_summary()
+        print(summary['chart_gross_missing_date'])
+        return self.render(
+            'pages/analytics.html',
+            summaryChartData=json.dumps(summary),
+            gross_sales="${:,.2f}".format(summary['gross_sales']),
+            chart_gross_missing_date=summary['chart_gross_missing_date'][0]['y'],
+            chart_count_missing_date=summary['chart_count_missing_date'][0]['y']
+        )
 
 # ----------------------------------------------------------------------------
 # Flask Views
@@ -377,19 +395,6 @@ class SaleView(ModelView):
 @app.route('/')
 def index():
     return redirect("/admin/", code=302)
-
-
-@app.route('/reports')
-def reports():
-    summary = sales_summary()
-    print(summary['chart_gross_missing_date'])
-    return render_template(
-        'pages/summary.html',
-        summaryChartData=json.dumps(summary),
-        gross_sales="${:,.2f}".format(summary['gross_sales']),
-        chart_gross_missing_date=summary['chart_gross_missing_date'][0]['y'],
-        chart_count_missing_date=summary['chart_count_missing_date'][0]['y']
-    )
 
 
 # Create admin
@@ -405,4 +410,5 @@ admin.add_view(SupplierView(Supplier, db.session))
 admin.add_view(ProductView(Product, db.session))
 admin.add_view(ModelView(Tag, db.session))
 admin.add_view(ModelView(Staff, db.session))
+admin.add_view(AnalyticsView(name='Analytics', endpoint='analytics'))
 # admin.add_view(InventoryView(name='Inventory', endpoint='inventory'))
