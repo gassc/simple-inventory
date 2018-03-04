@@ -9,6 +9,7 @@ import sqlite3
 import logging
 import operator
 import json
+import datetime
 from flask import Flask, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.schema import FetchedValue
@@ -200,8 +201,6 @@ product_tags_table = db.Table(
     db.Model.metadata,
     db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
     db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
-
-
 )
 
 # Create models
@@ -249,7 +248,7 @@ class ProductView(ModelView):
     column_exclude_list = ['description', 'initial_volume', 'fullname']
     column_editable_list = ['tags']
     action_disallowed_list = ['delete']
-    page_size = 25
+    page_size = 100
     form_excluded_columns = ['products', 'fullname']
     can_export = True
 
@@ -342,8 +341,9 @@ class StaffView(ModelView):
 
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    quantity = db.Column(db.Integer)
-    date = db.Column(db.DateTime)
+    quantity = db.Column(db.Integer, default=1)
+    # date = db.Column(db.DateTime, server_default=func.now())
+    date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     special_price = db.Column(db.Float)
     notes = db.Column(db.Text)
     product_id = db.Column(db.Integer(), db.ForeignKey(Product.id))
@@ -386,6 +386,7 @@ def reports():
     return render_template(
         'pages/summary.html',
         summaryChartData=json.dumps(summary),
+        gross_sales="${:,.2f}".format(summary['gross_sales']),
         chart_gross_missing_date=summary['chart_gross_missing_date'][0]['y'],
         chart_count_missing_date=summary['chart_count_missing_date'][0]['y']
     )
@@ -402,6 +403,6 @@ admin = admin.Admin(
 admin.add_view(SaleView(Sale, db.session))
 admin.add_view(SupplierView(Supplier, db.session))
 admin.add_view(ProductView(Product, db.session))
-# admin.add_view(InventoryView(name='Inventory', endpoint='inventory'))
 admin.add_view(ModelView(Tag, db.session))
 admin.add_view(ModelView(Staff, db.session))
+# admin.add_view(InventoryView(name='Inventory', endpoint='inventory'))
