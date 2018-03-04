@@ -121,7 +121,9 @@ def set_trigger_selling_price(db_path):
         SET sold_price = (
             CASE
                 WHEN (sale.special_price IS NOT NULL AND sale.special_price > 0)
-                    THEN sale.special_price
+                    THEN sale.special_price            
+                WHEN (sale.use_list_price = 1)
+                    THEN (SELECT product.list_price FROM product WHERE product.id = sale.product_id)
                 ELSE
                     (SELECT product.selling_price FROM product WHERE product.id = sale.product_id)
             END
@@ -139,6 +141,8 @@ def set_trigger_selling_price(db_path):
             CASE
                 WHEN (sale.special_price IS NOT NULL AND sale.special_price > 0)
                     THEN sale.special_price
+                WHEN (sale.use_list_price = 1)
+                    THEN (SELECT product.list_price FROM product WHERE product.id = sale.product_id)                    
                 ELSE
                     (SELECT product.selling_price FROM product WHERE product.id = sale.product_id)
             END
