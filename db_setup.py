@@ -75,7 +75,7 @@ def create_staff():
 def set_trigger_fullname(db_path):
     q1 = """
     CREATE TRIGGER product_update_fullname
-    AFTER UPDATE OF code, name, supplier_id ON product
+    AFTER UPDATE ON product
     FOR EACH ROW
     BEGIN
         UPDATE product
