@@ -196,15 +196,12 @@ class SupplierView(ModelView):
     can_delete = False
 
 
-# Create M2M table
 product_tags_table = db.Table(
     'product_tags',
     db.Model.metadata,
     db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
     db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
 )
-
-# Create models
 
 
 class Product(db.Model):
@@ -257,66 +254,57 @@ class ProductView(ModelView):
 
 
 '''
-class Inventory(db.Model):
+class Stock(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer(), db.ForeignKey(Product.id))
-    product = db.relationship(Product, backref='products_2_inventory')
-    initial_volume = db.Column(db.Integer)
-    volume_sold = db.Column(db.Integer)
-    volume_replaced = db.Column(db.Integer)
-    in_stock = db.Column(db.Integer)
+    units_purchased = db.Column(db.Integer, default=1)
+    use_list_price = db.Column(db.Boolean(), default=False)
+    special_price = db.Column(db.Float)
+    date = db.Column(db.DateTime, default=datetime.datetime.now)
     notes = db.Column(db.Text)
 
-    initial_volume = db.Column(
+    def __str__(self):
+        return self.units_purchased
+
+
+class Inventory(db.Model):
+    """Inventory is a table populated by triggers fired in the Order and Sales tables.
+    While directly editable, it should only need to be set-up once--for the initial 
+    inventory--and the triggers will handle the rest. Its primary purpose is to show 
+    how many items are left in stock
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer(), db.ForeignKey(Product.id))
+    notes = db.Column(db.Text)
+
+    # in stock = initial volume - volume sold + volume replaced
+    # in_stock is used to set an initial volume during table setup
+    in_stock = db.Column(
         db.Integer,
         default=0,
         server_default=FetchedValue(),
         server_onupdate=FetchedValue()
     )
 
-    # total replaced = *incremented* from a separate form
-    # volume_replaced = db.Column(
-    #     db.Integer,
-    #     default=0,
-    #     server_default=FetchedValue(),
-    #     server_onupdate=FetchedValue()
-    # )
+    # total replaced = *deincremented* from Order table entries
+    volume_replaced = db.Column(
+        db.Integer,
+        default=0,
+        server_default=FetchedValue(),
+        server_onupdate=FetchedValue()
+    )
 
-    # auto-completed via triggers in the SALES table
-    # total sold = tally of sales from sales table
-    # volume_sold = db.Column(
-    #     db.Integer,
-    #     default=0,
-    #     server_default=FetchedValue(),
-    #     server_onupdate=FetchedValue()
-    # )
-    # in stock = initial volume - volume sold + volume replaced
-    # in_stock = db.Column(
-    #     db.Integer,
-    #     default=0,
-    #     server_default=FetchedValue(),
-    #     server_onupdate=FetchedValue()
-    # )
+    # total sold = *incremented* from Sale table entries
+    volume_sold = db.Column(
+        db.Integer,
+        default=0,
+        server_default=FetchedValue(),
+        server_onupdate=FetchedValue()
+    )
+
     def __str__(self):
         return self.in_stock
 '''
-
-
-class InventoryView(BaseView):
-    @expose('/')
-    def index(self):
-        return self.render('custom/inventory_view.html')
-    '''
-    column_searchable_list = ('name', Supplier.name, 'fullname','code')
-    column_include_list = [Supplier.name, 'code', 'name',
-        'initial_volume', 'volume_replaced', 'volume_sold', 'in_stock']
-    action_disallowed_list = ['delete','create','update']
-    page_size = 25
-    can_create = False
-    can_edit = False
-    can_delete = False
-    can_export = True
-    '''
 
 
 class Tag(db.Model):
@@ -345,8 +333,7 @@ class StaffView(ModelView):
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quantity = db.Column(db.Integer, default=1)
-    # date = db.Column(db.DateTime, server_default=func.now())
-    date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    date = db.Column(db.DateTime, default=datetime.datetime.now)
     special_price = db.Column(db.Float)
     use_list_price = db.Column(db.Boolean(), default=False)
     notes = db.Column(db.Text)
@@ -370,6 +357,16 @@ class SaleView(ModelView):
                            'fullname', 'use_list_price']
     form_excluded_columns = ['sold_price']
     can_export = True
+
+
+# ----------------------------------------------------------------------------
+# Custom view classes (uses Flask-Admin template but not derived from table)
+# ----------------------------------------------------------------------------
+
+class InventoryView(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('pages/inventory.html')
 
 
 class AnalyticsView(BaseView):
@@ -404,11 +401,12 @@ admin = admin.Admin(
     template_mode='bootstrap3'
 )
 
-# Add views
+# Add model views
 admin.add_view(SaleView(Sale, db.session))
 admin.add_view(SupplierView(Supplier, db.session))
 admin.add_view(ProductView(Product, db.session))
 admin.add_view(ModelView(Tag, db.session))
 admin.add_view(ModelView(Staff, db.session))
+# add custom views
+admin.add_view(InventoryView(name='Inventory', endpoint='inventory'))
 admin.add_view(AnalyticsView(name='Analytics', endpoint='analytics'))
-# admin.add_view(InventoryView(name='Inventory', endpoint='inventory'))
