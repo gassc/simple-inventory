@@ -1,5 +1,9 @@
-{% extends 'layouts/main.html' %}
+{% extends 'admin/master.html' %}
+<!-- Title -->
+{% block title %}Inventory{% endblock %}
 <!-- block -->
 {% block body %}
-<p>Here I'm going to display a view of the data inventory.</p>
-{% endblock %}
+<h1>Inventory <small><em>Coming Soon</em></small></h1>
+<hr>
+<p>This page will provide an overview of the inventory: total products in stock, what is low, and what should be re-ordered soon.</p>
+{% include 'layouts/footer.html' %} {% endblock %}

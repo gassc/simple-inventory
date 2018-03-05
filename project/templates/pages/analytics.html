@@ -4,9 +4,26 @@
 <!-- block -->
 {% block body %}
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-6">
         <h1>Sales</h1>
-        <h2>{{gross_sales}} gross sales</h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-7">
+        <div class="well">
+            <h2>{{gross_sales}} gross sales</h2>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <p><em>Coming Soon: view sales over time periods (e.g., last year, last month, past 6 months, etc.), best-sellers, and most-profitable products. Charts will be interactive, with temporal cross-filtering.</em></p>
+    </div>
+</div>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <h2>Gross Sales per Day</h2>
+        <canvas id="summarySalesChart" width="300" height="100"></canvas>
+        <p>${{chart_gross_missing_date}} worth of transactions without a date</p>
     </div>
 </div>
 <div class="row">
@@ -17,18 +34,10 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <h2>Gross Sales per Day</h2>
-        <canvas id="summarySalesChart" width="300" height="100"></canvas>
-        <p>${{chart_gross_missing_date}} worth of transactions without a date</p>
-    </div>
-</div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
 <script>
     var summaryChartData = JSON.parse('{{ summaryChartData|safe }}');
     console.log(summaryChartData)
 </script>
 <script src="{{ url_for('static', filename='js/summaryChart.js')}}" defer></script>
-{% endblock %}
+{% include 'layouts/footer.html' %} {% endblock %}
