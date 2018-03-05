@@ -69,16 +69,28 @@ var summarySalesChart = new Chart(
         type: "line",
         data: {
             datasets: [{
-                label: "Daily Profits ($)",
-                type: "line",
-                backgroundColor: color(window.chartColors.green)
-                    .alpha(0.5)
-                    .rgbString(),
-                borderColor: window.chartColors.green,
-                data: summaryChartData.chart_gross.map(function(rec) {
-                    return dateify(rec);
-                })
-            }]
+                    label: "Gross Sales ($)",
+                    type: "line",
+                    backgroundColor: color(window.chartColors.blue)
+                        .alpha(0.5)
+                        .rgbString(),
+                    borderColor: window.chartColors.blue,
+                    data: summaryChartData.chart_gross.map(function(rec) {
+                        return dateify(rec);
+                    })
+                },
+                {
+                    label: "Profits ($)",
+                    type: "line",
+                    backgroundColor: color(window.chartColors.red)
+                        .alpha(0.5)
+                        .rgbString(),
+                    borderColor: window.chartColors.red,
+                    data: summaryChartData.chart_profit.map(function(rec) {
+                        return dateify(rec);
+                    })
+                }
+            ]
         },
         options: {
             title: {

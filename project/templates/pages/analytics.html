@@ -5,13 +5,27 @@
 {% block body %}
 <div class="row">
     <div class="col-md-6">
-        <h1>Sales</h1>
+        <h1>Sales Summary</h1>
     </div>
 </div>
 <div class="row">
     <div class="col-md-7">
-        <div class="well">
-            <h2>{{gross_sales}} gross sales</h2>
+
+        <div class="row">
+            <div class="col-sm-4">
+                <h2><small>Gross sales:</small></h2>
+            </div>
+            <div class="col-sm-8">
+                <h2>{{gross_sales}}</h2>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-4">
+                <h2><small>Profits: </small></h2>
+            </div>
+            <div class="col-sm-8">
+                <h2>{{profits}}</h2>
+            </div>
         </div>
     </div>
     <div class="col-md-5">
@@ -21,7 +35,7 @@
 <hr>
 <div class="row">
     <div class="col-md-12">
-        <h2>Gross Sales per Day</h2>
+        <h2>Sales per Day</h2>
         <canvas id="summarySalesChart" width="300" height="100"></canvas>
         <p>${{chart_gross_missing_date}} worth of transactions without a date</p>
     </div>

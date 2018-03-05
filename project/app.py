@@ -64,7 +64,7 @@ def format_date(date_string, strf_string='%Y-%m-%d', replace_nonetype_with="00-0
 
 
 def calculate_profit(rec, assume_quantity=1):
-    """give a record created from a join of Sales and Product data, return gross profit.
+    """give a record created from a join of Sales and Product data, return profit.
     If no price information is available, returns zero. If no quantity information is available,
     uses the assume_quantity parameter (default = 1)
 
@@ -79,14 +79,49 @@ def calculate_profit(rec, assume_quantity=1):
     # print(rec['id'], rec['quantity'], rec['special_price'],
     #       rec['list_price'], rec['sold_price'])
 
+    # determine quantity
     if not rec['quantity']:
         q = assume_quantity
     else:
         q = rec['quantity']
+    # calculate profit
     if rec['special_price']:
         return round(((rec['special_price'] - rec['list_price']) * q), 2)
     elif rec['sold_price']:
         return round(((rec['sold_price'] - rec['list_price']) * q), 2)
+    elif 'list_price' in rec:
+        return 0
+    else:
+        return 0
+
+    return 0
+
+
+def calculate_gross_sales(rec, assume_quantity=1):
+    """give a record created from a join of Sales and Product data, return gross sales.
+    If no price information is available, returns zero. If no quantity information is available,
+    uses the assume_quantity parameter (default = 1)
+
+    Arguments:
+        rec {dict} -- a record created from a join of Sales and Product data
+        assume_quantity {int} -- number to use if quantity (from sale) is empty. defaults to 1
+
+    Returns:
+        gross profit from the sale, as a float
+    """
+
+    # print(rec['id'], rec['quantity'], rec['special_price'],
+    #       rec['list_price'], rec['sold_price'])
+    # determine quantity
+    if not rec['quantity']:
+        q = assume_quantity
+    else:
+        q = rec['quantity']
+    # calculate profit
+    if rec['special_price']:
+        return round((rec['special_price'] * q), 2)
+    elif rec['sold_price']:
+        return round((rec['sold_price'] * q), 2)
     elif 'list_price' in rec:
         return round((rec['list_price'] * q), 2)
     else:
@@ -125,12 +160,15 @@ def sales_summary(start_dt=None, end_dt=None):
 
     # prep joined sales data for tabulation
     sales_data = etl.convert(sales_data, 'date', lambda dt: format_date(dt))
-    sales_data = etl.addfield(
-        sales_data, 'gross_profit', lambda rec: calculate_profit(rec)
-    )
     sales_data = etl.sort(sales_data, 'date')
     sales_data = etl.convert(
         sales_data, 'quantity', lambda q: handle_none(q, replace_with=1)
+    )
+    sales_data = etl.addfield(
+        sales_data, 'profit', lambda rec: calculate_profit(rec)
+    )
+    sales_data = etl.addfield(
+        sales_data, 'gross_sales', lambda rec: calculate_gross_sales(rec)
     )
 
     # summarize data into charting-friendly data structures
@@ -143,7 +181,7 @@ def sales_summary(start_dt=None, end_dt=None):
     # etl.lookall(chart_count)
 
     chart_gross = etl.fold(sales_data, 'date', operator.add,
-                           'gross_profit', presorted=True)
+                           'gross_sales', presorted=True)
     chart_gross = etl.rename(chart_gross, {
         'key': 'x', 'value': 'y'
     })
@@ -152,10 +190,20 @@ def sales_summary(start_dt=None, end_dt=None):
     # print(chart_gross)
     # etl.lookall(chart_gross)
 
+    chart_profit = etl.fold(sales_data, 'date', operator.add,
+                            'profit', presorted=True)
+    chart_profit = etl.rename(chart_profit, {
+        'key': 'x', 'value': 'y'
+    })
+    chart_profit, chart_profit_missing_date = etl.biselect(
+        chart_profit, lambda rec: rec.x is not None)
+
     # tabulate some figures
     gross_sales = 0
+    profits = 0
     for sale in etl.dicts(sales_data):
-        gross_sales += calculate_profit(sale)
+        profits += calculate_profit(sale)
+        gross_sales += calculate_gross_sales(sale)
 
     # for i in etl.dicts(chart_count):
     #     print(i)
@@ -164,8 +212,11 @@ def sales_summary(start_dt=None, end_dt=None):
 
     return {
         'gross_sales': gross_sales,
+        'profits': profits,
         'chart_gross': list(etl.dicts(chart_gross)),
         'chart_gross_missing_date': list(etl.dicts(chart_gross_missing_date)),
+        'chart_profit': list(etl.dicts(chart_profit)),
+        'chart_profit_missing_date': list(etl.dicts(chart_profit_missing_date)),
         'chart_count': list(etl.dicts(chart_count)),
         'chart_count_missing_date': list(etl.dicts(chart_count_missing_date))
     }
@@ -378,7 +429,9 @@ class AnalyticsView(BaseView):
             'pages/analytics.html',
             summaryChartData=json.dumps(summary),
             gross_sales="${:,.2f}".format(summary['gross_sales']),
+            profits="${:,.2f}".format(summary['profits']),
             chart_gross_missing_date=summary['chart_gross_missing_date'][0]['y'],
+            chart_profit_missing_date=summary['chart_profit_missing_date'][0]['y'],
             chart_count_missing_date=summary['chart_count_missing_date'][0]['y']
         )
 
