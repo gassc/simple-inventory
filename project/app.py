@@ -392,7 +392,8 @@ class AnalyticsView(BaseView):
 @app.route('/')
 def index():
     # return redirect("/admin/", code=302)
-    return "<h1><a href='/admin/'>View Inventory</a></h1>"
+    # return "<h1><a href='/admin/'>View Inventory</a></h1>"
+    return render_template('/pages/index.html')
 
 
 # Create admin

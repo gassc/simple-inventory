@@ -1,0 +1,23 @@
+{% extends 'layouts/main.html' %}
+<!-- Title -->
+{% block title %}{{ config['ORG_NAME'] }} | {{ config['APP_TITLE'] }}{% endblock %}
+<!-- block -->
+{% block content %}
+<div class="container">
+    <br>
+    <div class="jumbotron">
+        <a href='/admin/'>
+            <div class="row">
+                <div class="col-xs-12">
+                    <h1 class="text-center">{{ config['ORG_NAME'] }}</h1>
+                    <h1 class="text-center"><small>{{ config['APP_TITLE'] }}</small></h1>
+                    <hr>
+                    <p class="text-center">{{ config['APP_DESC'] }}</p>
+                    <br>
+                    <button class="btn btn-primary btn-lg btn-block" type="submit">Get Started</button>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

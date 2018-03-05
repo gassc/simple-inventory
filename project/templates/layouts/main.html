@@ -23,7 +23,7 @@
 
 
         <!-- Begin page content -->
-        <main id="content" role="main" class="container">
+        <main id="content" role="main" class="container-fluid">
 
             <div class="row">
                 <div class="col-md-12">
@@ -36,13 +36,12 @@
                 </div>
             </div>
 
-            {% block content %}{% endblock %}
-
+            {% block content %}{% endblock %} {% include 'layouts/footer.html' %}
         </main>
 
     </div>
 
-    {% include 'layouts/footer.html' %} {% include 'layouts/core.tail.html' %} {% include 'layouts/analytics.html' %}
+    {% include 'layouts/core.tail.html' %} {% include 'layouts/analytics.html' %}
 
 </body>
 
