@@ -28,7 +28,7 @@ var color = Chart.helpers.color;
 var timeFormat = "MM/DD/YYYY";
 var summaryCountChart = new Chart(
     document.getElementById("summaryCountChart"), {
-        type: "bar",
+        type: "line",
         data: {
             datasets: [{
                 label: "Total",
@@ -66,11 +66,11 @@ var summaryCountChart = new Chart(
 
 var summarySalesChart = new Chart(
     document.getElementById("summarySalesChart"), {
-        type: "bar",
+        type: "line",
         data: {
             datasets: [{
                 label: "Daily Profits ($)",
-                type: "bar",
+                type: "line",
                 backgroundColor: color(window.chartColors.green)
                     .alpha(0.5)
                     .rgbString(),
