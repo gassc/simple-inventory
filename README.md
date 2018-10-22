@@ -36,9 +36,18 @@ To develop this project:
 3.  Install requirements:
 
     pip install -r requirements.txt
+    
+4.  Create the database (initial set-up only)
 
-4.  Run the application:
+    `python db_setup.py`
 
-    ```
-    python run.py
-    ```
+5.  Run the application:
+
+    Using the Flask development server, in browser: `python run.py`
+    
+    As a PyWebView Desktop application: `python launch.py`
+
+
+# To-Do
+
+The [Issues list](https://github.com/gassc/simple-inventory/issues) provides an overview of what's in store for this. Notably, [issue 8](https://github.com/gassc/simple-inventory/issues/8) will provide some important missing functionality for any inventory software.
