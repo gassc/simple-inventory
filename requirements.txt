@@ -9,3 +9,4 @@ petl==1.1.1
 SQLAlchemy==1.1.11
 Werkzeug==0.12.2
 WTForms==2.1
+pywebview
