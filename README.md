@@ -25,11 +25,17 @@ To develop this project:
 
 2.  Create and activate a virtual environment:
 
-    ```python
-    python -m venv ENV
-    # *nix:
+    `python -m venv ENV`
+
+    *bash*
+    
+    ```sh
     source env/bin/activate
-    # windows
+    ```
+
+    
+    *windows*
+    ```ps
     ENV\Scripts\activate
     ```
 
