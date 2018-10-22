@@ -54,6 +54,12 @@ To develop this project:
     As a PyWebView Desktop application: `python launch.py`
 
 
+# Deployment (and Disclaimer)
+
+My use case is absurdly simple and probably not useful for most folks: for me this needs to run on one computer used by a couple of people and give the appeareance of a desktop application. It is not exposed to the internet, and so lacks any security features in that regard (logins, protection from CSRF, etc). 
+
+[PyWebView](https://github.com/r0x0r/pywebview) does the trick of making this run as a desktop application.
+
 # To-Do
 
 The [Issues list](https://github.com/gassc/simple-inventory/issues) provides an overview of what's in store for this. Notably, [issue 8](https://github.com/gassc/simple-inventory/issues/8) will provide some important missing functionality for any inventory software.
