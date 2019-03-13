@@ -25,20 +25,41 @@ To develop this project:
 
 2.  Create and activate a virtual environment:
 
-    ```python
-    python -m venv ENV
-    # *nix:
+    `python -m venv ENV`
+
+    *bash*
+    
+    ```sh
     source env/bin/activate
-    # windows
+    ```
+
+    
+    *windows*
+    ```ps
     ENV\Scripts\activate
     ```
 
 3.  Install requirements:
 
     pip install -r requirements.txt
+    
+4.  Create the database (initial set-up only)
 
-4.  Run the application:
+    `python db_setup.py`
 
-    ```
-    python run.py
-    ```
+5.  Run the application:
+
+    Using the Flask development server, in browser: `python run.py`
+    
+    As a PyWebView Desktop application: `python launch.py`
+
+
+# Deployment (and Disclaimer)
+
+My use case is absurdly simple and probably not useful for most folks: for me this needs to run on one computer used by a couple of people and give the appeareance of a desktop application. It is not exposed to the internet, and so lacks any security features in that regard (logins, protection from CSRF, etc). 
+
+[PyWebView](https://github.com/r0x0r/pywebview) does the trick of making this run as a desktop application.
+
+# To-Do
+
+The [Issues list](https://github.com/gassc/simple-inventory/issues) provides an overview of what's in store for this. Notably, [issue 8](https://github.com/gassc/simple-inventory/issues/8) will provide some important missing functionality for any inventory software.
