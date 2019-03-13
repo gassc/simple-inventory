@@ -135,7 +135,7 @@ def handle_none(v, replace_with=1):
         return v
 
 
-def sales_summary(start_dt=None, end_dt=None):
+def sales_summary(start_dt=None, end_dt=None, staff_id=None, for_export=False):
     """tally up gross (sale over list) profits
     TODO: tally up net profites (gross profit vs inventory purchase total)
 
@@ -153,51 +153,51 @@ def sales_summary(start_dt=None, end_dt=None):
     # retrieve existing tables
     products_records = etl.fromdb(db.engine, 'SELECT * FROM product')
     sales_records = etl.fromdb(db.engine, 'SELECT * FROM sale')
+    staff_records = etl.fromdb(db.engine, 'SELECT * FROM staff')
+    
+    # filter by start/end date if provided
+    if start_dt and end_dt:
+        sales_records = etl\
+            .selectnotnone(sales_records, 'date')\
+            .select(lambda r: r.date > start_dt and r.date <= end_dt)
+    elif start_dt and not end_dt:
+        sales_records = etl\
+            .selectnotnone(sales_records, 'date')\
+            .select(lambda r: r.date > start_dt)
+    elif end_dt and not start_dt:
+        sales_records = etl\
+            .selectnotnone(sales_records, 'date')\
+            .select(lambda r: r.date <= end_dt)
+    else:
+        pass
+    
+    # filter by staff id if provided
+    if staff_id:
+        sales_records = etl.select(sales_records, 'staff_id', lambda v: v == staff_id)
 
     # join product info to sales data
-    sales_data = etl.join(sales_records, products_records,
-                          lkey='product_id', rkey='id')
+    sales_data = etl\
+        .join(
+            sales_records,
+            products_records,
+            lkey='product_id', 
+            rkey='id'
+        )\
+        .leftjoin(
+            staff_records,
+            lkey='staff_id',
+            rkey='id'
+        )
+            
 
     # prep joined sales data for tabulation
-    sales_data = etl.convert(sales_data, 'date', lambda dt: format_date(dt))
-    sales_data = etl.sort(sales_data, 'date')
-    sales_data = etl.convert(
-        sales_data, 'quantity', lambda q: handle_none(q, replace_with=1)
-    )
-    sales_data = etl.addfield(
-        sales_data, 'profit', lambda rec: calculate_profit(rec)
-    )
-    sales_data = etl.addfield(
-        sales_data, 'gross_sales', lambda rec: calculate_gross_sales(rec)
-    )
-
-    # summarize data into charting-friendly data structures
-    chart_count = etl.fold(
-        sales_data, 'date', operator.add, 'quantity', presorted=True)
-    chart_count = etl.rename(chart_count, {'key': 'x', 'value': 'y'})
-    chart_count, chart_count_missing_date = etl.biselect(
-        chart_count, lambda rec: rec.x is not None)
-    # print(chart_count)
-    # etl.lookall(chart_count)
-
-    chart_gross = etl.fold(sales_data, 'date', operator.add,
-                           'gross_sales', presorted=True)
-    chart_gross = etl.rename(chart_gross, {
-        'key': 'x', 'value': 'y'
-    })
-    chart_gross, chart_gross_missing_date = etl.biselect(
-        chart_gross, lambda rec: rec.x is not None)
-    # print(chart_gross)
-    # etl.lookall(chart_gross)
-
-    chart_profit = etl.fold(sales_data, 'date', operator.add,
-                            'profit', presorted=True)
-    chart_profit = etl.rename(chart_profit, {
-        'key': 'x', 'value': 'y'
-    })
-    chart_profit, chart_profit_missing_date = etl.biselect(
-        chart_profit, lambda rec: rec.x is not None)
-
+    sales_data = etl\
+        .convert(sales_data, 'date', lambda dt: format_date(dt))\
+        .sort('date')\
+        .convert('quantity', lambda q: handle_none(q, replace_with=1))\
+        .addfield('profit', lambda rec: calculate_profit(rec))\
+        .addfield('gross_sales', lambda rec: calculate_gross_sales(rec))
+        
     # tabulate some figures
     gross_sales = 0
     profits = 0
@@ -205,11 +205,42 @@ def sales_summary(start_dt=None, end_dt=None):
         profits += calculate_profit(sale)
         gross_sales += calculate_gross_sales(sale)
 
+    if for_export:
+        return {
+            'gross_sales': gross_sales,
+            'profits': profits, 
+            'table': sales_data
+        }       
+
+    # summarize data into charting-friendly data structures
+    chart_count, chart_count_missing_date = etl\
+        .fold(sales_data, 'date', operator.add, 'quantity', presorted=True)\
+        .rename({'key': 'x', 'value': 'y'})\
+        .biselect(lambda rec: rec.x is not None)
+        
+    # print(chart_count)
+    # etl.lookall(chart_count)
+
+    chart_gross, chart_gross_missing_date = etl\
+        .fold(sales_data, 'date', operator.add,'gross_sales', presorted=True)\
+        .rename({'key': 'x', 'value': 'y'})\
+        .biselect(lambda rec: rec.x is not None)
+
+    # print(chart_gross)
+    # etl.lookall(chart_gross)
+
+    chart_profit, chart_profit_missing_date = etl\
+        .fold(sales_data, 'date', operator.add, 'profit', presorted=True)\
+        .rename({'key': 'x', 'value': 'y'})\
+        .biselect(lambda rec: rec.x is not None)
+
+
+
     # for i in etl.dicts(chart_count):
     #     print(i)
     # for i in etl.dicts(chart_gross):
     #     print(i)
-
+    
     return {
         'gross_sales': gross_sales,
         'profits': profits,
