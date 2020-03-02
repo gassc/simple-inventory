@@ -1,0 +1,25 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pylint = "*"
+autopep8 = "*"
+
+[packages]
+click = "==6.7"
+itsdangerous = "==0.24"
+petl = "==1.1.1"
+Flask = "==0.12.2"
+Flask-Admin = "==1.5.0"
+Flask-SQLAlchemy = "==2.2"
+Jinja2 = "==2.9.6"
+MarkupSafe = "==1.0"
+SQLAlchemy = "==1.1.11"
+Werkzeug = "==0.12.2"
+WTForms = "==2.1"
+python-dateutil = "*"
+
+[requires]
+python_version = "3.7"

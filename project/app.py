@@ -10,7 +10,7 @@ import logging
 import operator
 import json
 import datetime
-from flask import Flask, redirect, render_template
+from flask import Flask, redirect, render_template, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.schema import FetchedValue
 from jinja2 import Markup
@@ -135,6 +135,14 @@ def handle_none(v, replace_with=1):
         return v
 
 
+def export_data(table):
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    print(dir_path)
+    outpath = os.path.join(dir_path, 'static', 'data', "sales.csv")
+
+    etl.tocsv(table, outpath)
+
+
 def sales_summary(start_dt=None, end_dt=None):
     """tally up gross (sale over list) profits
     TODO: tally up net profites (gross profit vs inventory purchase total)
@@ -170,6 +178,8 @@ def sales_summary(start_dt=None, end_dt=None):
     sales_data = etl.addfield(
         sales_data, 'gross_sales', lambda rec: calculate_gross_sales(rec)
     )
+
+    export_data(sales_data)
 
     # summarize data into charting-friendly data structures
     chart_count = etl.fold(
@@ -320,8 +330,8 @@ class Stock(db.Model):
 
 class Inventory(db.Model):
     """Inventory is a table populated by triggers fired in the Order and Sales tables.
-    While directly editable, it should only need to be set-up once--for the initial 
-    inventory--and the triggers will handle the rest. Its primary purpose is to show 
+    While directly editable, it should only need to be set-up once--for the initial
+    inventory--and the triggers will handle the rest. Its primary purpose is to show
     how many items are left in stock
     """
     id = db.Column(db.Integer, primary_key=True)
